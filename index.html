@@ -294,15 +294,8 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const STATIC_WRITINGS = [
-            {
-                title: "Lo que significas",
-                writtenDate: "2025-02-14",
-                icon: "heart",
-                content: "A veces me pregunto si sabes realmente el impacto que tienes en mis días...",
-                author: "Luis"
-            }
-        ];
+        // Vaciamos el array de datos estáticos
+        const STATIC_WRITINGS = [];
 
         const firebaseConfig = {
             apiKey: "AIzaSyD0lX3XmVPQHNNxpsZS82YzDMzM6MLhq3g",
@@ -421,21 +414,40 @@
                 const writings = [];
                 snapshot.forEach((doc) => writings.push({ id: doc.id, ...doc.data() }));
                 
-                // Filter logic: Only show if publishedAt is passed OR if we are admin? 
-                // For now, show all but maybe visually distinguish future posts? 
-                // Let's just show all for simplicity unless requested otherwise.
-                
                 const normalizedWritings = writings.map(w => ({
                     ...w, writtenDate: w.writtenDate || w.date
                 }));
-                const displayList = normalizedWritings.length > 0 ? normalizedWritings : STATIC_WRITINGS;
-                renderWritings(displayList);
+                
+                // Pasamos los datos normalizados. Si está vacío, la función renderWritings se encargará.
+                renderWritings(normalizedWritings);
+            }, (error) => {
+                console.error("DB Error:", error);
+                // Si hay error (ej. permisos), mostramos vacío o la lista estática (vacía ahora)
+                renderWritings(STATIC_WRITINGS);
             });
         }
 
         function renderWritings(list) {
             const container = document.getElementById('writings-container');
             container.innerHTML = ''; 
+
+            // === ESTADO VACÍO (Call to Action) ===
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-1 md:col-span-2 glass-card p-12 rounded-2xl text-center flex flex-col items-center justify-center min-h-[300px] animate-fade-in-up border-dashed border-2 border-rose-100">
+                        <div class="bg-rose-50 p-4 rounded-full mb-6">
+                            <i data-lucide="feather" class="w-8 h-8 text-rose-400"></i>
+                        </div>
+                        <h3 class="font-serif text-2xl text-gray-800 mb-2">Aún no hay historias</h3>
+                        <p class="text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">Este libro está esperando ser escrito. Sé el primero en guardar un recuerdo eterno.</p>
+                        <button onclick="document.getElementById('secret-btn').click()" class="bg-white text-rose-500 border border-rose-200 hover:bg-rose-50 hover:border-rose-300 font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-sm hover:shadow-md flex items-center gap-2">
+                            <i data-lucide="pen-tool" class="w-4 h-4"></i> Anímate a escribir
+                        </button>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
 
             list.forEach((item, index) => {
                 const isPoem = item.isPoem || (item.title && item.title.includes('Micro-poema'));
